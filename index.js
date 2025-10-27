@@ -607,3 +607,4 @@ client.on('interactionCreate', async i => {
 client.login(process.env.DISCORD_TOKEN)
   .then(() => console.log('🔐 Login erfolgreich.'))
   .catch(err => console.error('❌ Login fehlgeschlagen:', err));
+

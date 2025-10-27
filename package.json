@@ -1,18 +1,34 @@
 {
-  "name": "kandar",
+  "name": "kandar-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "All-in-One Discord Bot für Kandar Shop (Tickets, Order, Giveaways, Feedback, Logging, Verify usw.)",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "discord.js": "^14.23.2",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "node-fetch": "^3.3.2"
-  }
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "kandar",
+    "tickets",
+    "shop",
+    "order",
+    "giveaway",
+    "feedback",
+    "logging"
+  ],
+  "author": "Cxlxrized_",
+  "license": "MIT"
 }

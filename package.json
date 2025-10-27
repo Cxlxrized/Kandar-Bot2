@@ -1,7 +1,7 @@
 {
   "name": "kandar-bot",
   "version": "1.0.0",
-  "description": "All-in-One Discord Bot für Kandar Shop (Tickets, Order, Giveaways, Feedback, Logging, Verify usw.)",
+  "description": "Kandar Discord Bot mit Order, Giveaway, Ticket & Verify System",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -16,19 +16,6 @@
     "nodemon": "^3.1.10"
   },
   "engines": {
-    "node": ">=20.0.0"
-  },
-  "keywords": [
-    "discord",
-    "bot",
-    "kandar",
-    "tickets",
-    "shop",
-    "order",
-    "giveaway",
-    "feedback",
-    "logging"
-  ],
-  "author": "Cxlxrized_",
-  "license": "MIT"
+    "node": ">=18"
+  }
 }

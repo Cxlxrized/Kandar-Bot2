@@ -255,78 +255,70 @@ client.on("interactionCreate", async (i) => {
     }
 
     // ---------- ORDER ----------
-    if (i.isChatInputCommand() && i.commandName === "order") {
-      const kunde = i.options.getUser("kunde");
-      const shop = loadJSON(FILES.shop);
-      if (!shop.length) return i.reply({ content: "❌ Keine Artikel im Shop.", ephemeral: true });
+if (i.isChatInputCommand() && i.commandName === "order") {
+  const kunde = i.options.getUser("kunde");
+  const shop = loadJSON(FILES.shop);
+  if (!shop.length) return i.reply({ content: "❌ Keine Artikel im Shop.", ephemeral: true });
 
-      const e = new EmbedBuilder()
-        .setColor(BRAND_COLOR)
-        .setTitle(`🧾 Bestellung von ${kunde.username}`)
-        .setDescription("Aktuelle Artikel:\n*(noch keine)*")
-        .setFooter({ text: BRAND_FOOTER }).setImage(BANNER_URL);
+  // Dropdown-Menü zur Auswahl des Artikels
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`order_select_${kunde.id}`)
+    .setPlaceholder("Wähle einen Artikel aus …")
+    .addOptions(shop.map(p => ({
+      label: `${p.name} – ${p.preis.toFixed(2)} €`,
+      value: p.name,
+      description: `Preis: ${p.preis.toFixed(2)} €`
+    })));
 
-      const add = new ButtonBuilder().setCustomId("order_add").setLabel("➕ Artikel hinzufügen").setStyle(ButtonStyle.Success);
-      const rem = new ButtonBuilder().setCustomId("order_remove").setLabel("➖ Artikel entfernen").setStyle(ButtonStyle.Secondary);
-      const done = new ButtonBuilder().setCustomId("order_done").setLabel("✅ Bestellung abschließen").setStyle(ButtonStyle.Primary);
-      const pay = new ButtonBuilder().setLabel("💳 Bezahlen").setStyle(ButtonStyle.Link).setURL(paypalLink(0));
+  const e = new EmbedBuilder()
+    .setColor(BRAND_COLOR)
+    .setTitle(`🛒 Bestellung von ${kunde.username}`)
+    .setDescription("Bitte wähle unten deinen gewünschten Artikel aus ⬇️")
+    .setFooter({ text: BRAND_FOOTER })
+    .setImage(BANNER_URL);
 
-      const msg = await i.reply({
-        embeds: [e],
-        components: [new ActionRowBuilder().addComponents(add, rem, done, pay)],
-        fetchReply: true
-      });
+  return i.reply({ embeds: [e], components: [new ActionRowBuilder().addComponents(menu)], ephemeral: true });
+}
 
-      const orders = loadJSON(FILES.orders);
-      orders.push({ msgId: msg.id, channelId: msg.channel.id, kundeId: kunde.id, items: [] });
-      saveJSON(FILES.orders, orders);
-    }
+// ---------- ORDER Auswahl ----------
+if (i.isStringSelectMenu() && i.customId.startsWith("order_select_")) {
+  const kundeId = i.customId.split("_")[2];
+  const kunde = await i.guild.members.fetch(kundeId);
+  const artikelName = i.values[0];
+  const shop = loadJSON(FILES.shop);
+  const artikel = shop.find(a => a.name === artikelName);
+  if (!artikel) return i.reply({ content: "❌ Artikel nicht gefunden.", ephemeral: true });
 
-    // ---------- ORDER Buttons ----------
-    if (i.isButton() && i.customId.startsWith("order_")) {
-      const orders = loadJSON(FILES.orders);
-      const o = orders.find(x => x.msgId === i.message.id);
-      if (!o) return i.reply({ content: "❌ Bestellung nicht mehr aktiv.", ephemeral: true });
-      const shop = loadJSON(FILES.shop);
+  // Bestellung-Embed im Channel
+  const e = new EmbedBuilder()
+    .setColor(BRAND_COLOR)
+    .setTitle(`🧾 Bestellung von ${kunde.user.username}`)
+    .setDescription(`**Artikel:** ${artikel.name}\n💰 **Preis:** ${artikel.preis.toFixed(2)} €`)
+    .setFooter({ text: BRAND_FOOTER })
+    .setImage(BANNER_URL);
 
-      if (i.customId === "order_add") {
-        const modal = new ModalBuilder().setCustomId("order_add_modal").setTitle("➕ Artikel hinzufügen");
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder().setCustomId("order_article")
-              .setPlaceholder("Wähle einen Artikel")
-              .addOptions(shop.map(p => ({ label: `${p.name} – ${p.preis.toFixed(2)} €`, value: p.name })))
-          )
-        );
-        return i.showModal(modal);
-      }
+  // Buttons wie gehabt
+  const add = new ButtonBuilder().setCustomId("order_add").setLabel("➕ Artikel hinzufügen").setStyle(ButtonStyle.Success);
+  const rem = new ButtonBuilder().setCustomId("order_remove").setLabel("➖ Artikel entfernen").setStyle(ButtonStyle.Secondary);
+  const done = new ButtonBuilder().setCustomId("order_done").setLabel("✅ Bestellung abschließen").setStyle(ButtonStyle.Primary);
+  const pay = new ButtonBuilder()
+    .setLabel(`💳 Jetzt ${artikel.preis.toFixed(2)} € zahlen`)
+    .setStyle(ButtonStyle.Link)
+    .setURL(paypalLink(artikel.preis));
 
-      if (i.customId === "order_remove") {
-        if (!o.items.length)
-          return i.reply({ content: "⚠️ Keine Artikel in der Bestellung.", ephemeral: true });
-        const modal = new ModalBuilder().setCustomId("order_remove_modal").setTitle("➖ Artikel entfernen");
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder().setCustomId("order_remove_select")
-              .addOptions(o.items.map(p => ({ label: p.name, value: p.name })))
-          )
-        );
-        return i.showModal(modal);
-      }
+  const msg = await i.channel.send({
+    embeds: [e],
+    components: [new ActionRowBuilder().addComponents(add, rem, done, pay)],
+  });
 
-      if (i.customId === "order_done") {
-        const total = o.items.reduce((a, b) => a + b.preis, 0);
-        const ch = i.guild.channels.cache.get(o.channelId);
-        const e = EmbedBuilder.from(i.message.embeds[0])
-          .setTitle(`🧾 Bestellung von <@${o.kundeId}> – ✅ Abgeschlossen`)
-          .setDescription(o.items.map(p => `• ${p.name} – ${p.preis.toFixed(2)} €`).join("\n") + `\n\n💰 **Gesamt:** ${total.toFixed(2)} €`)
-          .setColor("#00FF00");
-        await i.message.edit({ embeds: [e], components: [] });
-        await ch.send(`💬 <@${o.kundeId}> Deine Bestellung wurde abgeschlossen!`);
-        orders.splice(orders.indexOf(o), 1); saveJSON(FILES.orders, orders);
-        return;
-      }
-    }
+  // Bestellung speichern
+  const orders = loadJSON(FILES.orders);
+  orders.push({ msgId: msg.id, channelId: msg.channel.id, kundeId: kunde.id, items: [artikel] });
+  saveJSON(FILES.orders, orders);
+
+  return i.reply({ content: `✅ Bestellung für ${kunde} erstellt!`, ephemeral: true });
+}
+
 
     // ---------- CREATOR ----------
     if (i.isChatInputCommand() && i.commandName === "creator") {
